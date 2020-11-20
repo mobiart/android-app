@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>fonts/Font Awesome 5 Free-Regular-400.otf</file>
+        <file>NavigationBar.qml</file>
+        <file>utils.js</file>
+    </qresource>
+</RCC>
