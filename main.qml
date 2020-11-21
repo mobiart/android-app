@@ -152,6 +152,13 @@ Window {
                     margins: 10
                 }
             }
+            DropShadow {
+                    anchors.fill: title_textfield
+                    radius: 8.0
+                    samples: 17
+                    color: "#80000000"
+                    source: title_textfield
+            }
             TextField {
                 id: title_textfield
                 placeholderText: qsTr("Ex. Grafitti art on giant buildings")
@@ -173,6 +180,13 @@ Window {
                     margins: 10
                 }
             }
+            DropShadow {
+                    anchors.fill: description_textfield
+                    radius: 8.0
+                    samples: 17
+                    color: "#80000000"
+                    source: description_textfield
+            }
             TextArea {
                 id: description_textfield
                 width: parent.width
@@ -192,7 +206,76 @@ Window {
                     right: parent.right
                 }
             }
+            Text {
+                id: photos_text
+                text: "Photos"
+                font.pixelSize: parent.height / 50
+                anchors {
+                    top: description_textfield.bottom
+                    left: parent.left
+                    margins: 10
+                }
+            }
+            DropShadow {
+                    anchors.fill: photos_container
+                    radius: 8.0
+                    samples: 17
+                    color: "#80000000"
+                    source: photos_container
+            }
+            Rectangle {
+                id: photos_container
+                width: parent.width
+                height: parent.height / 5
+                color: "#e38d3d"
+                anchors {
+                    top: photos_text.bottom
+                    margins: 10
+                    left: parent.left
+                    right: parent.right
+                }
+                Text {
+                    text: "No photos added!"
+                    font.pixelSize: parent.height / 10
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
+                        top: parent.top
+                        margins: 10
+                    }
+                }
+                Text {
+                    text: "\uf0fe"
+                    color: "#c76c18"
+                    font.pixelSize: parent.height / 5
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+
+
+
+
+
+            Button {
+                text: "Post"
+                background: Rectangle {
+                    color: "#8f8bd8"
+                    radius: 4
+                }
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    bottom: parent.bottom
+                    bottomMargin: parent.height / 100
+                }
+                onClicked: {
+                        thank_you_box.visible = true
+                }
+            }
         }
+
+
         Rectangle {
             visible: (state_handler.state === "map") ? true : false
             id: map_container
@@ -319,6 +402,42 @@ Window {
                 }
             }
         }
+
+        Rectangle {
+            visible: false
+            id: thank_you_box
+            height: parent.height
+            width: parent.width
+            color: "#99000000"
+            z:5000
+            Text {
+                color: "#ffffff"
+                id: thank_you_text
+                text: "You may now return home."
+                font.pixelSize: parent.height / 25
+                anchors {
+                    verticalCenter: parent.verticalCenter
+                    horizontalCenter: parent.horizontalCenter
+                }
+            }
+            Button {
+                text: "Home"
+                background: Rectangle {
+                    color: "#8f8bd8"
+                    radius: 4
+                }
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    bottom: parent.bottom
+                    bottomMargin: parent.height / 100
+                }
+                onClicked: {
+                    state_handler.state = "home"
+                        thank_you_box.visible = false
+                }
+            }
+        }
+
         NavigationBar {
             id: navigationbar
         }
