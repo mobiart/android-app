@@ -44,5 +44,13 @@ function http_post(theUrl, data) {
     xmlHttp.send(JSON.stringify(data));
     return xmlHttp.responseText;
 }
+function http_get(theUrl) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+
+    xmlHttp.setRequestHeader("Content-type", "application/json");
+    xmlHttp.send(null);
+    return xmlHttp.responseText;
+}
 
 

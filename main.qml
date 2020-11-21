@@ -10,9 +10,24 @@ Window {
     height: 800
     visible: true
     title: qsTr("Mobiart")
+    property var product_list: []
+    property int products_per_row: (Utils.get("products_per_row") !== undefined) ? Utils.get("products_per_row") : 2
+    property var margin_padding: root.height / (50 * products_per_row)
+
     Component.onCompleted: {
         Utils.getDatabase()
-        if (Utils.get("jwt").length > 1) {
+        if (Utils.get("first_run") !== "true") {
+            Utils.set("products_per_row", 2)
+            Utils.set("first_run", "true")
+        }
+        var products = JSON.parse(Utils.http_get("https://milsugi.tech/api/marketplace/products/?filters=%7B%22start%22:0,%22size%22:100%7D"))
+        for(var i = 0; i < products.length; i++) {
+            var obj = products[i];
+            product_list.push([obj.name, obj.details, obj.active])
+        }
+        homescreen_gridview.model = product_list.length
+
+        if (Utils.get("jwt") !== undefined) {
             login_button.visible = false
             logout_button.visible = true
             var user_information = JSON.parse(Utils.http_post("https://milsugi.tech/api/profile/@me/", {
@@ -20,10 +35,7 @@ Window {
             }))
             account_name.text = "Welcome, " + user_information["name"]
         }
-        if (Utils.get("first_run").length < 1) {
-            Utils.set("products_per_row", 3)
-            Utils.set("first_run", "true")
-        }
+
     }
     FontLoader {
         id: fontAwesome
@@ -49,7 +61,11 @@ Window {
                 },
                 State {
                     name: "user"
+                },
+                State {
+                    name: "post"
                 }
+
             ]
         }
         id: root
@@ -57,47 +73,45 @@ Window {
         height: parent.height
         color: "#e6e6e6"
         Rectangle {
+            Component.onCompleted: {
+                console.log(products_per_row)
+            }
+
             visible: (state_handler.state === "home") ? true : false
             id: home_container
             height: parent.height - navigationbar.height
-            width: parent.width
+            width: parent.width - margin_padding
             color: "#00000000"
             GridView {
-                property var appPages: [[["Settings","org.gnome.Settings","gnome-control-center"],["Displays","preferences-desktop-display","gnome-control-center"],["Power","gnome-power-manager","gnome-control-center"]]]
-
-                property int margin_padding: root.height / (50 * Utils.get("products_per_row"))
-                id: application_list
-                x: margin_padding
+                id: homescreen_gridview
                 width: parent.width - margin_padding
-                height: parent.height
-                model: appPages[0].length
-                cellWidth: (parent.width - margin_padding) / Utils.get("products_per_row")
-                cellHeight: (parent.width - margin_padding) / Utils.get("products_per_row")
+                height: parent.height - margin_padding
+                model: 0
+                cellWidth: (parent.width - margin_padding) / products_per_row
+                cellHeight: (parent.width - margin_padding) / products_per_row
+                x: margin_padding * 1.5
+                y: margin_padding
                 focus: true
                 delegate: Item {
+                    DropShadow {
+                            anchors.fill: app_rectangle
+                            radius: 8.0
+                            samples: 17
+                            color: "#80000000"
+                            source: app_rectangle
+                    }
                     Column {
                         id: app_rectangle
                         Rectangle {
-                            radius: (this.height / 40)
-                            color: "white"
-                            width: application_list.cellWidth - margin_padding
-                            height: application_list.cellHeight - margin_padding
+
+                            color: "#ffffff"
+                            width: homescreen_gridview.cellWidth - margin_padding
+                            height: homescreen_gridview.cellHeight - margin_padding
                             anchors.horizontalCenter: parent.horizontalCenter
-                            Image {
-                                width: app_rectangle.height / 2.5
-                                height: app_rectangle.height / 2.5
-                                id: application_icon
-                                y: 20
-                                source: "image://icons/" + appPages[0][index][1]
-                                anchors {
-                                    horizontalCenter: parent.horizontalCenter
-                                    verticalCenter: parent.verticalCenter
-                                }
-                            }
                             Text {
                                 font.pixelSize: parent.height / 10
-                                text: appPages[0][index][0]
-                                color: "#ffffff"
+                                text: product_list[index][0]
+                                color: "#000000"
                                 anchors {
                                     bottom: parent.bottom
                                     bottomMargin: margin_padding
@@ -108,7 +122,7 @@ Window {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
-                                    proc.start(appPages[0][index][2])
+                                    state_handler.state = "post"
                                 }
                             }
                         }
@@ -253,11 +267,6 @@ Window {
                     }
                 }
             }
-
-
-
-
-
             Button {
                 text: "Post"
                 background: Rectangle {
@@ -274,8 +283,6 @@ Window {
                 }
             }
         }
-
-
         Rectangle {
             visible: (state_handler.state === "map") ? true : false
             id: map_container
@@ -284,6 +291,37 @@ Window {
             color: "#00000000"
             Text {
                 text: "map container"
+            }
+        }
+        Rectangle {
+            visible: (state_handler.state === "post") ? true : false
+            id: post_container
+            height: parent.height - navigationbar.height
+            width: parent.width
+            color: "#00000000"
+            Rectangle {
+                width: parent.width
+                height: parent.height / 2.2
+                color: "#000000"
+                Rectangle {
+                    width: 50
+                    height: 50
+                    radius: width*0.5
+                    color: "#e38d3d"
+                    Text {
+                        anchors {
+                            horizontalCenter: parent.horizontalCenter
+                            verticalCenter: parent.verticalCenter
+                        }
+                        text: "\uf004"
+                    }
+                    anchors {
+                        bottom: parent.bottom
+                        right: parent.right
+                        rightMargin: this.height / 2
+                        bottomMargin: -this.height / 2
+                    }
+                }
             }
         }
         Rectangle {
@@ -401,8 +439,51 @@ Window {
                     color: "#c25353"
                 }
             }
+            DropShadow {
+                    anchors.fill: settings_btn
+                    radius: 8.0
+                    samples: 17
+                    color: "#80000000"
+                    source: settings_btn
+            }
+            Button {
+                id: settings_btn
+                text: "Settings"
+                width: parent.width
+                anchors {
+                    top: account_name.bottom
+                    margins: 10
+                    left: parent.left
+                    right: parent.right
+                }
+                background: Rectangle {
+                    width: parent.width
+                    color: "#ffffff"
+                }
+            }
+            DropShadow {
+                    anchors.fill: about
+                    radius: 8.0
+                    samples: 17
+                    color: "#80000000"
+                    source: settings_btn
+            }
+            Button {
+                id: about
+                text: "About"
+                width: parent.width
+                anchors {
+                    top: settings_btn.bottom
+                    margins: 10
+                    left: parent.left
+                    right: parent.right
+                }
+                background: Rectangle {
+                    width: parent.width
+                    color: "#ffffff"
+                }
+            }
         }
-
         Rectangle {
             visible: false
             id: thank_you_box
@@ -437,7 +518,6 @@ Window {
                 }
             }
         }
-
         NavigationBar {
             id: navigationbar
         }

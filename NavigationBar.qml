@@ -20,7 +20,7 @@ Item {
         height: parent.height
         width: parent.width
         anchors.bottom: parent.bottom
-        color: "#e6e6e6"
+        color: "#ffffff"
         Text {
             id: home_btn
             text: "\uf1ad"
