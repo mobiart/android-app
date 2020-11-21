@@ -23,4 +23,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 ANDROID_ABIS = armeabi-v7a
-
+# need to figure out how to not hardcode my path for openssl.
+android: include(/home/xyn/Android/Sdk/android_openssl/openssl.pri)
