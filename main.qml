@@ -3,13 +3,28 @@ import QtQuick.Window 2.15
 import QtGraphicalEffects 1.15
 import QtQuick.Controls 2.15
 import QtWebView 1.15
-
+import QtQuick.LocalStorage 2.15
 import "utils.js" as Utils
 Window {
     width: 480
     height: 800
     visible: true
     title: qsTr("Mobiart")
+    Component.onCompleted: {
+        Utils.getDatabase()
+        if (Utils.get("jwt").length > 1) {
+            login_button.visible = false
+            logout_button.visible = true
+            var user_information = JSON.parse(Utils.http_post("https://milsugi.tech/api/profile/@me/", {
+                "jwt": Utils.get("jwt")
+            }))
+            account_name.text = "Welcome, " + user_information["name"]
+        }
+        if (Utils.get("first_run").length < 1) {
+            Utils.set("products_per_row", 3)
+            Utils.set("first_run", "true")
+        }
+    }
     FontLoader {
         id: fontAwesome
         source: "fonts/Font Awesome 5 Free-Regular-400.otf"
@@ -47,8 +62,58 @@ Window {
             height: parent.height - navigationbar.height
             width: parent.width
             color: "#00000000"
-            Text {
-                text: "home container"
+            GridView {
+                property var appPages: [[["Settings","org.gnome.Settings","gnome-control-center"],["Displays","preferences-desktop-display","gnome-control-center"],["Power","gnome-power-manager","gnome-control-center"]]]
+
+                property int margin_padding: root.height / (50 * Utils.get("products_per_row"))
+                id: application_list
+                x: margin_padding
+                width: parent.width - margin_padding
+                height: parent.height
+                model: appPages[0].length
+                cellWidth: (parent.width - margin_padding) / Utils.get("products_per_row")
+                cellHeight: (parent.width - margin_padding) / Utils.get("products_per_row")
+                focus: true
+                delegate: Item {
+                    Column {
+                        id: app_rectangle
+                        Rectangle {
+                            radius: (this.height / 40)
+                            color: "white"
+                            width: application_list.cellWidth - margin_padding
+                            height: application_list.cellHeight - margin_padding
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            Image {
+                                width: app_rectangle.height / 2.5
+                                height: app_rectangle.height / 2.5
+                                id: application_icon
+                                y: 20
+                                source: "image://icons/" + appPages[0][index][1]
+                                anchors {
+                                    horizontalCenter: parent.horizontalCenter
+                                    verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            Text {
+                                font.pixelSize: parent.height / 10
+                                text: appPages[0][index][0]
+                                color: "#ffffff"
+                                anchors {
+                                    bottom: parent.bottom
+                                    bottomMargin: margin_padding
+                                    leftMargin: margin_padding
+                                    left: parent.left
+                                }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    proc.start(appPages[0][index][2])
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         Rectangle {
@@ -68,7 +133,64 @@ Window {
             width: parent.width
             color: "#00000000"
             Text {
-                text: "add container"
+                id: listing_text
+                text: "Post a new listing"
+                font.pixelSize: parent.height / 25
+                anchors {
+                    top: parent.top
+                    horizontalCenter: parent.horizontalCenter
+                    margins: 10
+                }
+            }
+            Text {
+                id: title_text
+                text: "Title"
+                font.pixelSize: parent.height / 50
+                anchors {
+                    top: listing_text.bottom
+                    left: parent.left
+                    margins: 10
+                }
+            }
+            TextField {
+                id: title_textfield
+                placeholderText: qsTr("Ex. Grafitti art on giant buildings")
+                width: parent.width
+                anchors {
+                    top: title_text.bottom
+                    margins: 10
+                    left: parent.left
+                    right: parent.right
+                }
+            }
+            Text {
+                id: description_text
+                text: "Description"
+                font.pixelSize: parent.height / 50
+                anchors {
+                    top: title_textfield.bottom
+                    left: parent.left
+                    margins: 10
+                }
+            }
+            TextArea {
+                id: description_textfield
+                width: parent.width
+                height: parent.height / 10
+                background: Rectangle {
+                    height: parent.height
+                    width: parent.width
+                    color: "#ffffff"
+                    border.color: "#bdbdbd"
+                    border.width: 1
+                }
+
+                anchors {
+                    top: description_text.bottom
+                    margins: 10
+                    left: parent.left
+                    right: parent.right
+                }
             }
         }
         Rectangle {
@@ -93,9 +215,24 @@ Window {
                 width: parent.width
                 height: parent.height
                 z: 100
-
+                onLoadingChanged: {
+                    if (this.url.toString().indexOf("https://milsugi.tech/api/auth/?code=") > -1) {
+                        this.visible = false
+                        this.runJavaScript("document.querySelector('pre').innerHTML", function(result) {
+                            if (JSON.parse(result)["jwt"].length > 1) {
+                                Utils.set("jwt", JSON.parse(result)["jwt"])
+                                Utils.set("exp_days", 365)
+                                login_button.visible = false
+                                logout_button.visible = true
+                                var user_information = JSON.parse(Utils.http_post("https://milsugi.tech/api/profile/@me/", {
+                                    "jwt": Utils.get("jwt")
+                                }))
+                                account_name.text = "Welcome, " + user_information["name"]
+                            }
+                        })
+                    }
+                }
             }
-
             Image {
                 property bool rounded: true
                 property bool adapt: true
@@ -123,6 +260,7 @@ Window {
                 }
             }
             Text {
+                id: account_name
                 text: "My account"
                 font.pixelSize: parent.height / 25
                 anchors {
@@ -132,6 +270,7 @@ Window {
                 }
             }
             Button {
+                id: login_button
                 onClicked: {
                     facebook_login.visible = true
                     facebook_login.url = "https://www.facebook.com/v9.0/dialog/oauth?client_id=281582256624404&redirect_uri=https://milsugi.tech/api/auth"
@@ -141,17 +280,42 @@ Window {
                     bottom: user_icon.bottom
                     leftMargin: -20
                 }
-                contentItem : Text {
+                contentItem: Text {
                     text: "Login"
                     color: "#ffffff"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
-
                 background: Rectangle {
-                    radius: width*0.5
+                    radius: width * 0.5
                     color: "#3b5998"
+                }
+            }
+            Button {
+                visible: false
+                id: logout_button
+                onClicked: {
+                    Utils.set("jwt", "")
+                    this.visible = false
+                    login_button.visible = true
+                    account_name.text = "My account"
+                }
+                anchors {
+                    left: user_icon.right
+                    bottom: user_icon.bottom
+                    leftMargin: -20
+                }
+                contentItem: Text {
+                    text: "Logout"
+                    color: "#ffffff"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+                background: Rectangle {
+                    radius: width * 0.5
+                    color: "#c25353"
                 }
             }
         }
