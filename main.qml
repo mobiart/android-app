@@ -23,7 +23,8 @@ Window {
         var products = JSON.parse(Utils.http_get("https://milsugi.tech/api/marketplace/products/?filters=%7B%22start%22:0,%22size%22:100%7D"))
         for(var i = 0; i < products.length; i++) {
             var obj = products[i];
-            product_list.push([obj.name, obj.details, obj.active])
+            console.log(obj.price_upon_request)
+            product_list.push([obj.name, obj.details, obj.price, obj.active])
         }
         homescreen_gridview.model = product_list.length
 
@@ -103,18 +104,28 @@ Window {
                     Column {
                         id: app_rectangle
                         Rectangle {
-
                             color: "#ffffff"
                             width: homescreen_gridview.cellWidth - margin_padding
                             height: homescreen_gridview.cellHeight - margin_padding
                             anchors.horizontalCenter: parent.horizontalCenter
                             Text {
+                                id: product_title_thumb
                                 font.pixelSize: parent.height / 10
                                 text: product_list[index][0]
                                 color: "#000000"
                                 anchors {
+                                    leftMargin: margin_padding
+                                    left: parent.left
+                                    bottom: product_price_thumb.top
+                                }
+                            }
+                            Text {
+                                id: product_price_thumb
+                                font.pixelSize: parent.height / 15
+                                text: (product_list[index][2] === 0) ? "Price upon request." : product_list[index][2] + " USD"
+                                color: "#000000"
+                                anchors {
                                     bottom: parent.bottom
-                                    bottomMargin: margin_padding
                                     leftMargin: margin_padding
                                     left: parent.left
                                 }
@@ -123,6 +134,18 @@ Window {
                                 anchors.fill: parent
                                 onClicked: {
                                     state_handler.state = "post"
+                                    listing_title.text = product_list[index][0]
+                                    if(product_list[index][2] === 0) {
+                                        listing_price.text = "Price upon request."
+                                    } else {
+                                        listing_price.text = product_list[index][2] + " USD"
+                                    }
+                                    if(product_list[index][3] === true) {
+                                        listing_active.text = "This listing is currently available."
+                                    } else {
+                                        listing_active.text = "This listing is not available and will be removed soon."
+                                    }
+                                    listing_descripton.text = product_list[index][1]
                                 }
                             }
                         }
@@ -221,11 +244,40 @@ Window {
                 }
             }
             Text {
+                id: price_text
+                text: "Price"
+                font.pixelSize: parent.height / 50
+                anchors {
+                    top: description_textfield.bottom
+                    left: parent.left
+                    margins: 10
+                }
+            }
+            DropShadow {
+                    anchors.fill: price_textfield
+                    radius: 8.0
+                    samples: 17
+                    color: "#80000000"
+                    source: price_textfield
+            }
+            TextField {
+                id: price_textfield
+                placeholderText: qsTr("Ex. 50 USD. input 0 if you want the price to be per request.")
+                width: parent.width
+                anchors {
+                    top: price_text.bottom
+                    margins: 10
+                    left: parent.left
+                    right: parent.right
+                }
+            }
+
+            Text {
                 id: photos_text
                 text: "Photos"
                 font.pixelSize: parent.height / 50
                 anchors {
-                    top: description_textfield.bottom
+                    top: price_textfield.bottom
                     left: parent.left
                     margins: 10
                 }
@@ -279,6 +331,15 @@ Window {
                     bottomMargin: parent.height / 100
                 }
                 onClicked: {
+                        console.log(Utils.http_post("https://milsugi.tech/api/marketplace/product/", {
+                            "jwt": Utils.get("jwt"),
+                            "user": "test",
+                            "name": title_textfield.text,
+                            "description": description_textfield.text,
+                            "price_upon_request": false,
+                            "price": price_textfield.text,
+                            "active": true
+                        }))
                         thank_you_box.visible = true
                 }
             }
@@ -300,10 +361,12 @@ Window {
             width: parent.width
             color: "#00000000"
             Rectangle {
+                id: listing_image
                 width: parent.width
                 height: parent.height / 2.2
                 color: "#000000"
                 Rectangle {
+                    id: favourite_button
                     width: 50
                     height: 50
                     radius: width*0.5
@@ -322,6 +385,52 @@ Window {
                         bottomMargin: -this.height / 2
                     }
                 }
+            }
+            Text {
+                id: listing_active
+                text: "{active}"
+                anchors {
+                    top: listing_image.bottom
+                    topMargin: 10
+                    left: parent.left
+                    leftMargin: 10
+                }
+            }
+
+            Text {
+                id: listing_title
+                text: "{title}"
+                anchors {
+                    top: listing_image.bottom
+                    topMargin: 10 + favourite_button.height / 2
+                    left: parent.left
+                    leftMargin: 10
+                }
+                font.pixelSize: parent.height / 25
+            }
+            Text {
+                id: listing_price
+                text: "{price}"
+                anchors {
+                    top: listing_title.bottom
+                    left: parent.left
+                    leftMargin: 10
+                }
+                font.pixelSize: parent.height / 35
+            }
+
+            Text {
+                id: listing_descripton
+                text: "{description}"
+                anchors {
+                    top: listing_price.bottom
+                    topMargin: 10
+                    left: parent.left
+                    leftMargin: 10
+                }
+                font.pixelSize: parent.height / 35
+                width: parent.width - margin_padding
+                wrapMode: Text.Wrap
             }
         }
         Rectangle {
