@@ -13,6 +13,7 @@ Window {
     property var product_list: []
     property int products_per_row: (Utils.get("products_per_row") !== undefined) ? Utils.get("products_per_row") : 2
     property var margin_padding: root.height / (50 * products_per_row)
+    property int bookmark_id: 0
 
     Component.onCompleted: {
         Utils.getDatabase()
@@ -24,9 +25,13 @@ Window {
         for(var i = 0; i < products.length; i++) {
             var obj = products[i];
             console.log(obj.price_upon_request)
-            product_list.push([obj.name, obj.details, obj.price, obj.active])
+            product_list.push([obj.name, obj.details, obj.price, obj.active, obj.id])
         }
+
+        var bookmarks = console.log(JSON.stringify(Utils.http_post("https://milsugi.tech/api/profile/bookmarks/"), {"jwt": Utils.get("jwt")}))
+
         homescreen_gridview.model = product_list.length
+        bookmark_gridview.model = product_list.length
 
         if (Utils.get("jwt") !== undefined) {
             login_button.visible = false
@@ -146,6 +151,7 @@ Window {
                                         listing_active.text = "This listing is not available and will be removed soon."
                                     }
                                     listing_descripton.text = product_list[index][1]
+                                    bookmark_id = product_list[index][4]
                                 }
                             }
                         }
@@ -159,9 +165,67 @@ Window {
             height: parent.height - navigationbar.height
             width: parent.width
             color: "#00000000"
-            Text {
-                text: "bookmarks container"
+
+            GridView {
+                id: bookmark_gridview
+                width: parent.width - margin_padding
+                height: parent.height - margin_padding
+                model: 0
+                cellWidth: (parent.width - margin_padding) / products_per_row
+                cellHeight: (parent.width - margin_padding) / products_per_row
+                x: margin_padding * 1.5
+                y: margin_padding
+                focus: true
+                delegate: Item {
+                    DropShadow {
+                            anchors.fill: bookmark_rectangle
+                            radius: 8.0
+                            samples: 17
+                            color: "#80000000"
+                            source: bookmark_rectangle
+                    }
+                    Column {
+                        id: bookmark_rectangle
+                        Rectangle {
+                            color: "#ffffff"
+                            width: homescreen_gridview.cellWidth - margin_padding
+                            height: homescreen_gridview.cellHeight - margin_padding
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            Text {
+                                id: bookmark_title_thumb
+                                font.pixelSize: parent.height / 10
+                                text: product_list[index][0]
+                                color: "#000000"
+                                anchors {
+                                    leftMargin: margin_padding
+                                    left: parent.left
+                                    bottom: bookmark_price_thumb.top
+                                }
+                            }
+                            Text {
+                                id: bookmark_price_thumb
+                                font.pixelSize: parent.height / 15
+                                text: (product_list[index][2] === 0) ? "Price upon request." : product_list[index][2] + " USD"
+                                color: "#000000"
+                                anchors {
+                                    bottom: parent.bottom
+                                    leftMargin: margin_padding
+                                    left: parent.left
+                                }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+
+                                }
+                            }
+                        }
+                    }
+                }
             }
+
+
+
         }
         Rectangle {
             visible: (state_handler.state === "add") ? true : false
@@ -333,9 +397,9 @@ Window {
                 onClicked: {
                         console.log(Utils.http_post("https://milsugi.tech/api/marketplace/product/", {
                             "jwt": Utils.get("jwt"),
-                            "user": "test",
+                            "user": 1,
                             "name": title_textfield.text,
-                            "description": description_textfield.text,
+                            "details": description_textfield.text,
                             "price_upon_request": false,
                             "price": price_textfield.text,
                             "active": true
@@ -383,6 +447,16 @@ Window {
                         right: parent.right
                         rightMargin: this.height / 2
                         bottomMargin: -this.height / 2
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            console.log(JSON.stringify(Utils.bookmark_post("https://milsugi.tech/api/profile/bookmark/"), {
+                                            "jwt": Utils.get("jwt"),
+                                            "product_id": bookmark_id
+                                        }))
+                            console.log(bookmark_id)
+                        }
                     }
                 }
             }
@@ -433,6 +507,22 @@ Window {
                 wrapMode: Text.Wrap
             }
         }
+        Rectangle {
+            visible: (state_handler.state === "about") ? true : false
+            id: about_container
+            height: parent.height - navigationbar.height
+            width: parent.width
+            color: "#00000000"
+            Text {
+                text: "This app was made for the UniHack 2020 Hackathon."
+                anchors {
+                    verticalCenter: parent.verticalCenter
+                    horizontalCenter: parent.horizontalCenter
+                }
+            }
+
+        }
+
         Rectangle {
             visible: (state_handler.state === "user") ? true : false
             id: user_container
@@ -591,6 +681,9 @@ Window {
                     width: parent.width
                     color: "#ffffff"
                 }
+                onClicked: {
+                    state_handler.state = "about"
+                }
             }
         }
         Rectangle {
@@ -622,6 +715,15 @@ Window {
                     bottomMargin: parent.height / 100
                 }
                 onClicked: {
+                    var products = JSON.parse(Utils.http_get("https://milsugi.tech/api/marketplace/products/?filters=%7B%22start%22:0,%22size%22:100%7D"))
+                    product_list.length = 0
+                    for(var i = 0; i < products.length; i++) {
+                        var obj = products[i];
+                        console.log(obj.price_upon_request)
+                        product_list.push([obj.name, obj.details, obj.price, obj.active, obj.id])
+                    }
+                    homescreen_gridview.model = product_list.length
+
                     state_handler.state = "home"
                         thank_you_box.visible = false
                 }

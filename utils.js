@@ -44,6 +44,14 @@ function http_post(theUrl, data) {
     xmlHttp.send(JSON.stringify(data));
     return xmlHttp.responseText;
 }
+function bookmark_post(theUrl, data) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "POST", theUrl, false ); // false for synchronous request
+
+    xmlHttp.setRequestHeader("Content-type", "multipart/form-data; boundary=1");
+    xmlHttp.send(data);
+    return xmlHttp.responseText;
+}
 function http_get(theUrl) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
