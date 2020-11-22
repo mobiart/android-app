@@ -11,6 +11,7 @@ Window {
     visible: true
     title: qsTr("Mobiart")
     property var product_list: []
+    property var bookmark_list: []
     property int products_per_row: (Utils.get("products_per_row") !== undefined) ? Utils.get("products_per_row") : 2
     property var margin_padding: root.height / (50 * products_per_row)
     property int bookmark_id: 0
@@ -27,10 +28,14 @@ Window {
             product_list.push([obj.name, obj.details, obj.price, obj.active, obj.id, obj.thumbnail])
         }
 
-        var bookmarks = console.log(JSON.stringify(Utils.http_post("https://milsugi.tech/api/profile/bookmarks/"), {"jwt": Utils.get("jwt")}))
+        var bookmarks = JSON.parse(Utils.http_get("https://milsugi.tech/api/profile/bookmarks/?user_id=1"))
+        for(var j = 0; j < bookmarks.length; j++) {
+            var bookmark_obj = bookmarks[j];
+            bookmark_list.push([bookmark_obj.name, bookmark_obj.details, bookmark_obj.price, bookmark_obj.active, bookmark_obj.id, bookmark_obj.thumbnail])
+        }
 
         homescreen_gridview.model = product_list.length
-        bookmark_gridview.model = product_list.length
+        bookmark_gridview.model = bookmark_list.length
 
         if (Utils.get("jwt") !== undefined) {
             login_button.visible = false
@@ -198,9 +203,23 @@ Window {
                             color: "#80000000"
                             source: bookmark_rectangle
                     }
+
                     Column {
                         id: bookmark_rectangle
                         Rectangle {
+                            DropShadow {
+                                    anchors.fill: bookmark_image_thumb
+                                    radius: 8.0
+                                    samples: 17
+                                    color: "#80000000"
+                                    source: bookmark_image_thumb
+                            }
+                            Image {
+                                id: bookmark_image_thumb
+                                width: parent.width
+                                height: parent.height - bookmark_price_thumb.height - bookmark_title_thumb.height
+                                source: bookmark_list[index][5]
+                            }
                             color: "#ffffff"
                             width: homescreen_gridview.cellWidth - margin_padding
                             height: homescreen_gridview.cellHeight - margin_padding
@@ -208,7 +227,7 @@ Window {
                             Text {
                                 id: bookmark_title_thumb
                                 font.pixelSize: parent.height / 10
-                                text: product_list[index][0]
+                                text: bookmark_list[index][0]
                                 color: "#000000"
                                 anchors {
                                     leftMargin: margin_padding
@@ -219,7 +238,7 @@ Window {
                             Text {
                                 id: bookmark_price_thumb
                                 font.pixelSize: parent.height / 15
-                                text: (product_list[index][2] === 0) ? "Price upon request." : product_list[index][2] + " USD"
+                                text: (bookmark_list[index][2] === 0) ? "Price upon request." : bookmark_list[index][2] + " USD"
                                 color: "#000000"
                                 anchors {
                                     bottom: parent.bottom
@@ -230,7 +249,21 @@ Window {
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
-
+                                    state_handler.state = "post"
+                                    listing_title.text = bookmark_list[index][0]
+                                    if(bookmark_list[index][2] === 0) {
+                                        listing_price.text = "Price upon request."
+                                    } else {
+                                        listing_price.text = bookmark_list[index][2] + " USD"
+                                    }
+                                    if(bookmark_list[index][3] === true) {
+                                        listing_active.text = "This listing is currently available."
+                                    } else {
+                                        listing_active.text = "This listing is not available and will be removed soon."
+                                    }
+                                    listing_descripton.text = bookmark_list[index][1]
+                                    bookmark_id = bookmark_list[index][4]
+                                    listing_image.source = bookmark_list[index][5]
                                 }
                             }
                         }
@@ -416,7 +449,8 @@ Window {
                             "details": description_textfield.text,
                             "price_upon_request": false,
                             "price": price_textfield.text,
-                            "active": true
+                            "active": true,
+                            "thumbnail": "https://www.brdtex.com/wp-content/uploads/2019/09/no-image-480x480.png"
                         }))
                         thank_you_box.visible = true
                 }
@@ -743,12 +777,11 @@ Window {
                     bottomMargin: parent.height / 100
                 }
                 onClicked: {
-                    var products = JSON.parse(Utils.http_get("https://milsugi.tech/api/marketplace/products/?filters=%7B%22start%22:0,%22size%22:100%7D"))
                     product_list.length = 0
+                    var products = JSON.parse(Utils.http_get("https://milsugi.tech/api/marketplace/products/?filters=%7B%22start%22:0,%22size%22:100%7D"))
                     for(var i = 0; i < products.length; i++) {
                         var obj = products[i];
-                        console.log(obj.price_upon_request)
-                        product_list.push([obj.name, obj.details, obj.price, obj.active, obj.id])
+                        product_list.push([obj.name, obj.details, obj.price, obj.active, obj.id, obj.thumbnail])
                     }
                     homescreen_gridview.model = product_list.length
 
