@@ -24,8 +24,7 @@ Window {
         var products = JSON.parse(Utils.http_get("https://milsugi.tech/api/marketplace/products/?filters=%7B%22start%22:0,%22size%22:100%7D"))
         for(var i = 0; i < products.length; i++) {
             var obj = products[i];
-            console.log(obj.price_upon_request)
-            product_list.push([obj.name, obj.details, obj.price, obj.active, obj.id])
+            product_list.push([obj.name, obj.details, obj.price, obj.active, obj.id, obj.thumbnail])
         }
 
         var bookmarks = console.log(JSON.stringify(Utils.http_post("https://milsugi.tech/api/profile/bookmarks/"), {"jwt": Utils.get("jwt")}))
@@ -113,6 +112,20 @@ Window {
                             width: homescreen_gridview.cellWidth - margin_padding
                             height: homescreen_gridview.cellHeight - margin_padding
                             anchors.horizontalCenter: parent.horizontalCenter
+                            DropShadow {
+                                    anchors.fill: product_image_thumb
+                                    radius: 8.0
+                                    samples: 17
+                                    color: "#80000000"
+                                    source: product_image_thumb
+                            }
+                            Image {
+                                id: product_image_thumb
+                                width: parent.width
+                                height: parent.height - product_price_thumb.height - product_title_thumb.height
+                                source: product_list[index][5]
+                            }
+
                             Text {
                                 id: product_title_thumb
                                 font.pixelSize: parent.height / 10
@@ -152,6 +165,7 @@ Window {
                                     }
                                     listing_descripton.text = product_list[index][1]
                                     bookmark_id = product_list[index][4]
+                                    listing_image.source = product_list[index][5]
                                 }
                             }
                         }
@@ -424,11 +438,25 @@ Window {
             height: parent.height - navigationbar.height
             width: parent.width
             color: "#00000000"
-            Rectangle {
+            DropShadow {
+                    anchors.fill: listing_image
+                    radius: 8.0
+                    samples: 17
+                    color: "#80000000"
+                    source: listing_image
+            }
+            Image {
                 id: listing_image
                 width: parent.width
                 height: parent.height / 2.2
-                color: "#000000"
+                source: ""
+                DropShadow {
+                        anchors.fill: favourite_button
+                        radius: 8.0
+                        samples: 17
+                        color: "#80000000"
+                        source: favourite_button
+                }
                 Rectangle {
                     id: favourite_button
                     width: 50
@@ -502,7 +530,7 @@ Window {
                     left: parent.left
                     leftMargin: 10
                 }
-                font.pixelSize: parent.height / 35
+
                 width: parent.width - margin_padding
                 wrapMode: Text.Wrap
             }
